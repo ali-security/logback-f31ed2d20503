@@ -51,7 +51,6 @@ import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-import java.io.IOException;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Stack;
@@ -114,81 +113,74 @@ public class IfThenElseTest {
         System.clearProperty(sysKey);
     }
 
+    // CVE-2026-13006: every Janino-evaluated <if condition> is refused and neither branch runs.
+
     @Test
     public void ifWithNew() throws JoranException {
         context.putProperty(ki1, val1);
-        simpleConfigurator.doConfigure(CONDITIONAL_DIR_PREFIX + "ifNew.xml");
-        Assertions.assertTrue(checker.containsMatch(Status.ERROR, IfModelHandler.NEW_OPERATOR_DISALLOWED_MSG));
-        Assertions.assertTrue(checker.containsMatch(Status.ERROR, IfModelHandler.NEW_OPERATOR_DISALLOWED_SEE));
-        verifyConfig(new String[] { "BEGIN", "END" });
+        assertConditionRefused("ifNew.xml");
     }
 
     @Test
     public void ifWithExec() throws JoranException {
         context.putProperty(ki1, val1);
-        simpleConfigurator.doConfigure(CONDITIONAL_DIR_PREFIX + "ifWithExec.xml");
-        checker.containsException(org.codehaus.commons.compiler.CompileException.class);
-        checker.containsMatch(Status.ERROR, "Failed to parse condition");
+        assertConditionRefused("ifWithExec.xml");
     }
 
     @Test
-    public void whenContextPropertyIsSet_IfThenBranchIsEvaluated() throws JoranException {
+    public void whenContextPropertyIsSet_NeitherBranchIsEvaluated() throws JoranException {
         context.putProperty(ki1, val1);
-        simpleConfigurator.doConfigure(CONDITIONAL_DIR_PREFIX + "if0.xml");
-        verifyConfig(new String[] { "BEGIN", "a", "END" });
+        assertConditionRefused("if0.xml");
     }
 
     @Test
-    public void whenLocalPropertyIsSet_IfThenBranchIsEvaluated() throws JoranException {
-        simpleConfigurator.doConfigure(CONDITIONAL_DIR_PREFIX + "if_localProperty.xml");
-        verifyConfig(new String[] { "BEGIN", "a", "END" });
+    public void whenLocalPropertyIsSet_NeitherBranchIsEvaluated() throws JoranException {
+        assertConditionRefused("if_localProperty.xml");
     }
 
     @Test
-    public void whenNoPropertyIsDefined_ElseBranchIsEvaluated() throws JoranException {
-        simpleConfigurator.doConfigure(CONDITIONAL_DIR_PREFIX + "if0.xml");
-        verifyConfig(new String[] { "BEGIN", "b", "END" });
+    public void whenNoPropertyIsDefined_NeitherBranchIsEvaluated() throws JoranException {
+        assertConditionRefused("if0.xml");
     }
 
     @Test
-    public void whenContextPropertyIsSet_IfThenBranchIsEvaluated_NO_ELSE_DEFINED() throws JoranException {
+    public void whenContextPropertyIsSet_NO_ELSE_DEFINED_ThenBranchIsNotEvaluated() throws JoranException {
         context.putProperty(ki1, val1);
-        simpleConfigurator.doConfigure(CONDITIONAL_DIR_PREFIX + "ifWithoutElse.xml");
-        verifyConfig(new String[] { "BEGIN", "a", "END" });
+        assertConditionRefused("ifWithoutElse.xml");
     }
 
     @Test
-    public void whenNoPropertyIsDefined_IfThenBranchIsNotEvaluated_NO_ELSE_DEFINED() throws JoranException {
-        simpleConfigurator.doConfigure(CONDITIONAL_DIR_PREFIX + "ifWithoutElse.xml");
-        verifyConfig(new String[] { "BEGIN", "END" });
-        Assertions.assertTrue(checker.isErrorFree(0));
+    public void whenNoPropertyIsDefined_NO_ELSE_DEFINED_ThenBranchIsNotEvaluated() throws JoranException {
+        assertConditionRefused("ifWithoutElse.xml");
     }
 
     @Test
     public void nestedIf() throws JoranException {
-        simpleConfigurator.doConfigure(CONDITIONAL_DIR_PREFIX + "nestedIf.xml");
-        //StatusPrinter.print(context);
-        verifyConfig(new String[] { "BEGIN", "a", "c", "END" });
-        Assertions.assertTrue(checker.isErrorFree(0));
+        assertConditionRefused("nestedIf.xml");
     }
 
     @Test
-    public void useNonExistenceOfSystemPropertyToDefineAContextProperty() throws JoranException {
+    public void nonExistenceOfSystemPropertyNoLongerDefinesAContextProperty() throws JoranException {
         Assertions.assertNull(System.getProperty(sysKey));
         Assertions.assertNull(context.getProperty(dynaKey));
         simpleConfigurator.doConfigure(CONDITIONAL_DIR_PREFIX + "ifSystem.xml");
-        System.out.println(dynaKey + "=" + context.getProperty(dynaKey));
-        Assertions.assertNotNull(context.getProperty(dynaKey));
+        Assertions.assertTrue(checker.containsMatch(Status.ERROR, IfModelHandler.JANINO_CONDITION_DISABLED_MSG));
+        Assertions.assertNull(context.getProperty(dynaKey));
     }
 
     @Test
     public void noContextPropertyShouldBeDefinedIfSystemPropertyExists() throws JoranException {
         System.setProperty(sysKey, "a");
         Assertions.assertNull(context.getProperty(dynaKey));
-        System.out.println("before " + dynaKey + "=" + context.getProperty(dynaKey));
         simpleConfigurator.doConfigure(CONDITIONAL_DIR_PREFIX + "ifSystem.xml");
-        System.out.println(dynaKey + "=" + context.getProperty(dynaKey));
         Assertions.assertNull(context.getProperty(dynaKey));
+    }
+
+    private void assertConditionRefused(String configFile) throws JoranException {
+        simpleConfigurator.doConfigure(CONDITIONAL_DIR_PREFIX + configFile);
+        Assertions.assertTrue(checker.containsMatch(Status.ERROR, IfModelHandler.JANINO_CONDITION_DISABLED_MSG));
+        Assertions.assertTrue(checker.containsMatch(Status.ERROR, IfModelHandler.JANINO_CONDITION_DISABLED_SEE));
+        verifyConfig(new String[] { "BEGIN", "END" });
     }
 
     private void verifyConfig(String[] expected) {

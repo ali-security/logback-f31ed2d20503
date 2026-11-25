@@ -145,17 +145,15 @@ public class BlackboxJoranConfiguratorTest {
         configure(configFileAsStr);
     }
 
+    // CVE-2026-13006: the <if condition> is refused, so neither LIST_THEN nor LIST_ELSE is attached.
     @Test
     public void conditional1673bisWithActiveThen() throws JoranException  {
         loggerContext.putProperty("EXTRA", "true");
         String configFileAsStr = BlackboxClassicTestConstants.JORAN_INPUT_PREFIX + "issues/logback_1673bis.xml";
         configure(configFileAsStr);
         Logger root = loggerContext.getLogger(Logger.ROOT_LOGGER_NAME);
-        ListAppender<ILoggingEvent> listThen = (ListAppender<ILoggingEvent>) root.getAppender("LIST_THEN");
-        assertNotNull(listThen);
-
-        ListAppender<ILoggingEvent> listElse = (ListAppender<ILoggingEvent>) root.getAppender("LIST_ELSE");
-        assertNull(listElse);
+        assertNull(root.getAppender("LIST_THEN"));
+        assertNull(root.getAppender("LIST_ELSE"));
     }
 
     @Test
@@ -163,11 +161,8 @@ public class BlackboxJoranConfiguratorTest {
         String configFileAsStr = BlackboxClassicTestConstants.JORAN_INPUT_PREFIX + "issues/logback_1673bis.xml";
         configure(configFileAsStr);
         Logger root = loggerContext.getLogger(Logger.ROOT_LOGGER_NAME);
-        ListAppender<ILoggingEvent> listThen = (ListAppender<ILoggingEvent>) root.getAppender("LIST_THEN");
-        assertNull(listThen);
-
-        ListAppender<ILoggingEvent> listElse = (ListAppender<ILoggingEvent>) root.getAppender("LIST_ELSE");
-        assertNotNull(listElse);
+        assertNull(root.getAppender("LIST_THEN"));
+        assertNull(root.getAppender("LIST_ELSE"));
     }
 
     @Test

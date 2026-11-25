@@ -13,19 +13,16 @@
  */
 package ch.qos.logback.core.model.processor.conditional;
 
-import ch.qos.logback.core.util.EnvUtil;
+
 import ch.qos.logback.core.util.OptionHelper;
 import ch.qos.logback.core.Context;
 import ch.qos.logback.core.CoreConstants;
-import ch.qos.logback.core.joran.conditional.Condition;
-import ch.qos.logback.core.joran.conditional.PropertyEvalScriptBuilder;
 import ch.qos.logback.core.model.Model;
 import ch.qos.logback.core.model.conditional.IfModel;
 import ch.qos.logback.core.model.conditional.IfModel.BranchState;
 import ch.qos.logback.core.model.processor.ModelHandlerBase;
 import ch.qos.logback.core.model.processor.ModelHandlerException;
 import ch.qos.logback.core.model.processor.ModelInterpretationContext;
-import ch.qos.logback.core.spi.ScanException;
 
 public class IfModelHandler extends ModelHandlerBase {
 
@@ -35,6 +32,9 @@ public class IfModelHandler extends ModelHandlerBase {
 
     public static final String NEW_OPERATOR_DISALLOWED_MSG = "The 'condition' attribute may not contain the 'new' operator.";
     public static final String NEW_OPERATOR_DISALLOWED_SEE = "See also " + CoreConstants.CODES_URL + "#conditionNew";
+
+    public static final String JANINO_CONDITION_DISABLED_MSG = "Janino-based evaluation of the 'condition' attribute is disabled for security reasons, see CVE-2026-13006.";
+    public static final String JANINO_CONDITION_DISABLED_SEE = "See also " + CoreConstants.CODES_URL + "#conditionJanino";
 
 
     enum Branch {IF_BRANCH, ELSE_BRANCH; }
@@ -58,59 +58,14 @@ public class IfModelHandler extends ModelHandlerBase {
     public void handle(ModelInterpretationContext mic, Model model) throws ModelHandlerException {
         
         ifModel = (IfModel) model;
-        
-        if (!EnvUtil.isJaninoAvailable()) {
-            addError(MISSING_JANINO_MSG);
-            addError(MISSING_JANINO_SEE);
-            return;
-        }
-        
         mic.pushModel(ifModel);
-        Condition condition = null;
-        int lineNum = model.getLineNumber();
 
-        String conditionStr = ifModel.getCondition();
-        if (!OptionHelper.isNullOrEmptyOrAllSpaces(conditionStr)) {
-            try {
-                conditionStr = OptionHelper.substVars(conditionStr, mic, context);
-            } catch (ScanException e) {
-               addError("Failed to parse input [" + conditionStr + "] on line "+lineNum, e);
-               ifModel.setBranchState(BranchState.IN_ERROR);
-               return;
-            }
-
-            // do not allow 'new' operator
-            if (hasNew(conditionStr)) {
-                addError(NEW_OPERATOR_DISALLOWED_MSG);
-                addError(NEW_OPERATOR_DISALLOWED_SEE);
-                ifModel.setBranchState(BranchState.IN_ERROR);
-                return;
-            }
-
-            try {
-                PropertyEvalScriptBuilder pesb = new PropertyEvalScriptBuilder(mic);
-                pesb.setContext(context);
-                condition = pesb.build(conditionStr);
-            } catch (Exception|NoClassDefFoundError e) {
-                ifModel.setBranchState(BranchState.IN_ERROR);
-                addError("Failed to parse condition [" + conditionStr + "] on line "+lineNum, e);
-                return;
-            }
-
-            if (condition != null) {
-                boolean boolResult = condition.evaluate();
-                addInfo("Condition ["+conditionStr+"] evaluated to "+boolResult+ " on line "+lineNum);
-                ifModel.setBranchState(boolResult);
-            } else {
-                addError("The condition variable is null. This should not occur.");
-                ifModel.setBranchState(BranchState.IN_ERROR);
-                return;
-            }
+        // CVE-2026-13006: Janino-evaluated conditions are refused; neither branch runs.
+        if (!OptionHelper.isNullOrEmptyOrAllSpaces(ifModel.getCondition())) {
+            addError(JANINO_CONDITION_DISABLED_MSG + " Skipping <if> element on line " + model.getLineNumber());
+            addError(JANINO_CONDITION_DISABLED_SEE);
+            ifModel.setBranchState(BranchState.IN_ERROR);
         }
-    }
-
-    private boolean hasNew(String conditionStr) {
-        return conditionStr.contains("new ");
     }
 
     @Override
