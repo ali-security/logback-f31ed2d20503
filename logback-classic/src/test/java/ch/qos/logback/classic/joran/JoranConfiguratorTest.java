@@ -188,6 +188,15 @@ public class JoranConfiguratorTest {
     }
 
     @Test
+    public void fauxListener() throws JoranException {
+        configure(ClassicTestConstants.JORAN_INPUT_PREFIX + "fauxListener.xml");
+        //StatusPrinter.print(loggerContext);
+
+        assertEquals(0, FauxListener.COUNT);
+        checker.assertContainsMatch(Status.ERROR, "Could not create component \\[listener\\] of type \\[ch.qos.logback.classic.joran.FauxListener\\]");
+    }
+
+    @Test
     public void statusListener() throws JoranException {
         configure(ClassicTestConstants.JORAN_INPUT_PREFIX + "statusListener.xml");
         //StatusPrinter.print(loggerContext);

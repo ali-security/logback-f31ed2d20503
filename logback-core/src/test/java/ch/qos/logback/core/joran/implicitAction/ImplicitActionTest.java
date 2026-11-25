@@ -31,12 +31,16 @@ import ch.qos.logback.core.model.processor.DefaultProcessor;
 import ch.qos.logback.core.model.processor.ImplicitModelHandler;
 import ch.qos.logback.core.model.processor.PropertyModelHandler;
 import ch.qos.logback.core.model.processor.StatusListenerModelHandler;
+import ch.qos.logback.core.spi.BasicSequenceNumberGenerator;
+import ch.qos.logback.core.status.Status;
 import ch.qos.logback.core.testUtil.CoreTestConstants;
 import ch.qos.logback.core.status.testUtil.StatusChecker;
 import ch.qos.logback.core.util.StatusPrinter;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class ImplicitActionTest {
 
@@ -151,6 +155,42 @@ public class ImplicitActionTest {
             StatusPrinter.print(fruitContext);
             throw je;
         }
+    }
+
+    // nested component instantiated via an adder method (addFruit(Fruit))
+    @Test
+    public void fauxFruit() throws Exception {
+        FauxFruit.COUNT = 0;
+        simpleConfigurator.doConfigure(IMPLCIT_DIR + "fauxFruit.xml");
+        //StatusPrinter.print(fruitContext);
+
+        assertEquals(0, FauxFruit.COUNT);
+        assertTrue(fruitContext.getFruitList().isEmpty());
+        checker.assertContainsMatch(Status.ERROR,
+                "Could not create component \\[fruit\\] of type \\[ch.qos.logback.core.joran.implicitAction.FauxFruit\\]");
+    }
+
+    // nested component instantiated via a setter method (setSequenceNumberGenerator(SequenceNumberGenerator))
+    @Test
+    public void fauxSequenceNumberGenerator() throws Exception {
+        FauxFruit.COUNT = 0;
+        simpleConfigurator.doConfigure(IMPLCIT_DIR + "fauxSequenceNumberGenerator.xml");
+        //StatusPrinter.print(fruitContext);
+
+        assertEquals(0, FauxFruit.COUNT);
+        assertNull(fruitContext.getSequenceNumberGenerator());
+        checker.assertContainsMatch(Status.ERROR,
+                "Could not create component \\[sequenceNumberGenerator\\] of type \\[ch.qos.logback.core.joran.implicitAction.FauxFruit\\]");
+    }
+
+    // a class implementing the type expected by the setter is still accepted
+    @Test
+    public void legitSequenceNumberGenerator() throws Exception {
+        simpleConfigurator.doConfigure(IMPLCIT_DIR + "legitSequenceNumberGenerator.xml");
+        //StatusPrinter.print(fruitContext);
+
+        checker.assertIsErrorFree();
+        assertTrue(fruitContext.getSequenceNumberGenerator() instanceof BasicSequenceNumberGenerator);
     }
 
 }

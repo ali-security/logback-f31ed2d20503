@@ -88,8 +88,10 @@ public class ImplicitModelHandler extends ModelHandlerBase {
         // we only push action data if NestComponentIA is applicable
         case AS_COMPLEX_PROPERTY_COLLECTION:
         case AS_COMPLEX_PROPERTY:
+            Class<?> propertyType = parentBean.getTypeForComplexProperty(nestedElementTagName, aggregationType);
             ImplicitModelDataForComplexProperty adComplex = new ImplicitModelDataForComplexProperty(parentBean,
                     aggregationType, nestedElementTagName);
+            adComplex.setExpectedPropertyType(propertyType);
             implicitModelData = adComplex;
             doComplex(mic, implicitModel, adComplex);
             return;
@@ -151,7 +153,12 @@ public class ImplicitModelHandler extends ModelHandlerBase {
                         + "] property");
             }
 
-            actionData.setNestedComplexProperty(componentClass.getConstructor().newInstance());
+            // only instantiate the nested component if it is compatible with the type
+            // expected by the setter/adder of the parent bean
+            Class<?> expectedPropertyType = actionData.getExpectedPropertyType();
+            Object nestedComplexProperty = OptionHelper.instantiateClassWithSuperclassRestriction(componentClass,
+                    expectedPropertyType);
+            actionData.setNestedComplexProperty(nestedComplexProperty);
 
             // pass along the repository
             if (actionData.getNestedComplexProperty() instanceof ContextAware) {

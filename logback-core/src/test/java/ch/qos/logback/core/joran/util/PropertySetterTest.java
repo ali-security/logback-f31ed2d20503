@@ -27,6 +27,7 @@ import ch.qos.logback.core.ContextBase;
 import ch.qos.logback.core.joran.spi.DefaultNestedComponentRegistry;
 import ch.qos.logback.core.joran.util.beans.BeanDescriptionCache;
 import ch.qos.logback.core.spi.FilterReply;
+import ch.qos.logback.core.status.Status;
 import ch.qos.logback.core.status.testUtil.StatusChecker;
 import ch.qos.logback.core.util.AggregationType;
 import ch.qos.logback.core.util.StatusPrinter;
@@ -34,6 +35,7 @@ import ch.qos.logback.core.util.StatusPrinter;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class PropertySetterTest {
@@ -163,6 +165,24 @@ public class PropertySetterTest {
         SwimmingPool pool = new SwimmingPoolImpl();
         setter.setComplexProperty("swimmingPool", pool);
         assertEquals(pool, house.getSwimmingPool());
+    }
+
+    @Test
+    public void typeForComplexProperty() {
+        assertEquals(Door.class, setter.getTypeForComplexProperty("door", AggregationType.AS_COMPLEX_PROPERTY));
+        assertEquals(SwimmingPool.class,
+                setter.getTypeForComplexProperty("swimmingPool", AggregationType.AS_COMPLEX_PROPERTY));
+        assertEquals(Window.class,
+                setter.getTypeForComplexProperty("window", AggregationType.AS_COMPLEX_PROPERTY_COLLECTION));
+        assertEquals(Window.class,
+                setter.getTypeForComplexProperty("Window", AggregationType.AS_COMPLEX_PROPERTY_COLLECTION));
+        assertEquals(SwimmingPool.class,
+                setter.getTypeForComplexProperty("largeSwimmingPool", AggregationType.AS_COMPLEX_PROPERTY_COLLECTION));
+        checker.assertIsErrorFree();
+
+        assertThrows(IllegalStateException.class,
+                () -> setter.getTypeForComplexProperty("nonExistent", AggregationType.AS_COMPLEX_PROPERTY));
+        checker.assertContainsMatch(Status.ERROR, "Could not find method for property \\[nonExistent\\]");
     }
 
     @Test
