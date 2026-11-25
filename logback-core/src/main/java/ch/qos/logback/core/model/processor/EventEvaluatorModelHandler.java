@@ -80,6 +80,15 @@ public class EventEvaluatorModelHandler extends ModelHandlerBase {
         if (evaluator instanceof LifeCycle) {
             ((LifeCycle) evaluator).start();
             addInfo("Starting evaluator named [" + evaluator.getName() + "]");
+            // An evaluator that refused to start (e.g. Janino, CVE-2024-12798) is not registered,
+            // so converters such as %caller ignore it instead of failing on every event.
+            if (!((LifeCycle) evaluator).isStarted()) {
+                addError("Evaluator named [" + evaluator.getName() + "] failed to start and will not be registered.");
+                if (intercon.peekObject() == evaluator) {
+                    intercon.popObject();
+                }
+                return;
+            }
         }
 
         Object o = intercon.peekObject();

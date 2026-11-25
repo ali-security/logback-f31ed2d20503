@@ -52,14 +52,8 @@ abstract public class JaninoEventEvaluatorBase<E> extends EventEvaluatorBase<E> 
 
     @Override
     public void start() {
-        try {
-            assert context != null;
-            scriptEvaluator = new ScriptEvaluator(getDecoratedExpression(), EXPRESSION_TYPE, getParameterNames(),
-                    getParameterTypes(), THROWN_EXCEPTIONS);
-            super.start();
-        } catch (Exception e) {
-            addError("Could not start evaluator with expression [" + expression + "]", e);
-        }
+        addError("Janino-based event evaluation is disabled for security reasons (CVE-2024-12798). "
+                + "Use standard logback filters instead.");
     }
 
     public boolean evaluate(E event) throws EvaluationException {

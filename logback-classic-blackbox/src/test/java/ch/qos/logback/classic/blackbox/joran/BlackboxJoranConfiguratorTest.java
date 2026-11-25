@@ -27,6 +27,7 @@ import ch.qos.logback.core.read.ListAppender;
 import ch.qos.logback.core.testUtil.RandomUtil;
 import ch.qos.logback.core.testUtil.StringListAppender;
 import ch.qos.logback.core.util.StatusPrinter;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
@@ -71,6 +72,7 @@ public class BlackboxJoranConfiguratorTest {
         assertTrue(str1.contains(" DEBUG - hello world"));
     }
 
+    @Disabled
     @Test
     public void testEvaluatorFilter() throws JoranException {
         configure(BlackboxClassicTestConstants.JORAN_INPUT_PREFIX + "evaluatorFilter.xml");
@@ -89,6 +91,7 @@ public class BlackboxJoranConfiguratorTest {
         assertEquals("hello", back.getMessage());
     }
 
+    @Disabled
     @Test
     public void testEvaluatorFilterWithImports() throws JoranException {
         configure(BlackboxClassicTestConstants.JORAN_INPUT_PREFIX + "evaluatorFilterWithImports.xml");
@@ -105,6 +108,34 @@ public class BlackboxJoranConfiguratorTest {
         ILoggingEvent back = listAppender.list.get(0);
         assertEquals(Level.WARN, back.getLevel());
         assertEquals("hello", back.getMessage());
+    }
+
+    // CVE-2024-12798: Janino expressions read from a configuration file must not be executed,
+    // and evaluators which failed to start must not cause logging events to be dropped.
+    @Test
+    public void janinoEvaluatorExpressionIsNotExecuted() throws JoranException {
+        String sideEffectKey = "BlackboxJoranConfiguratorTest.janinoSideEffect";
+        System.clearProperty(sideEffectKey);
+        try {
+            configure(BlackboxClassicTestConstants.JORAN_INPUT_PREFIX + "evaluatorWithSideEffect.xml");
+
+            logger.debug("hello");
+
+            assertNull(System.getProperty(sideEffectKey));
+
+            ListAppender<ILoggingEvent> listAppender = (ListAppender<ILoggingEvent>) root.getAppender("LIST");
+            assertNotNull(listAppender);
+            assertEquals(1, listAppender.list.size());
+            assertEquals("hello", listAppender.list.get(0).getMessage());
+
+            StringListAppender<ILoggingEvent> slAppender = (StringListAppender<ILoggingEvent>) root
+                    .getAppender("STR_LIST");
+            assertNotNull(slAppender);
+            assertEquals(1, slAppender.strList.size());
+            assertTrue(slAppender.strList.get(0).contains("DEBUG - hello"));
+        } finally {
+            System.clearProperty(sideEffectKey);
+        }
     }
 
     @Test

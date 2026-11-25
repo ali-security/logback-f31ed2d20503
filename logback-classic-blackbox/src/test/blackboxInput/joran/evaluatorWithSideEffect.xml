@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE configuration>
+
+<!-- Janino expressions must never be compiled nor executed (CVE-2024-12798) -->
+<configuration>
+
+  <evaluator name="sideEffectEval">
+    <Expression>System.setProperty("BlackboxJoranConfiguratorTest.janinoSideEffect", "evaluator") == null</Expression>
+  </evaluator>
+
+  <appender name="LIST" class="ch.qos.logback.core.read.ListAppender">
+    <filter class="ch.qos.logback.core.filter.EvaluatorFilter">
+      <Evaluator>
+        <Expression>System.setProperty("BlackboxJoranConfiguratorTest.janinoSideEffect", "filter") == null</Expression>
+      </Evaluator>
+      <OnMatch>DENY</OnMatch>
+    </filter>
+  </appender>
+
+  <appender name="STR_LIST" class="ch.qos.logback.core.testUtil.StringListAppender">
+    <layout>
+      <Pattern>%caller{1, sideEffectEval}%level - %m%n</Pattern>
+    </layout>
+  </appender>
+
+  <root level="DEBUG">
+    <appender-ref ref="LIST" />
+    <appender-ref ref="STR_LIST" />
+  </root>
+
+</configuration>
