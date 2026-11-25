@@ -18,6 +18,7 @@ import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.List;
 
+import ch.qos.logback.classic.LoggerContext;
 import org.slf4j.helpers.BasicMarker;
 
 import ch.qos.logback.classic.Level;
@@ -58,13 +59,30 @@ public class HardenedLoggingEventInputStream extends HardenedObjectInputStream {
         return whitelist;
     }
 
+    /**
+     * Retained for binary compatibility. Unauthorized deserialization attempts
+     * are rejected but not reported to any context.
+     */
     public HardenedLoggingEventInputStream(InputStream is) throws IOException {
-        super(is, getWhilelist());
+        this((LoggerContext) null, is);
     }
 
+    /**
+     * Retained for binary compatibility. Unauthorized deserialization attempts
+     * are rejected but not reported to any context.
+     */
     public HardenedLoggingEventInputStream(InputStream is, List<String> additionalAuthorizedClasses)
             throws IOException {
-        this(is);
+        this((LoggerContext) null, is, additionalAuthorizedClasses);
+    }
+
+    public HardenedLoggingEventInputStream(LoggerContext loggerContext, InputStream is) throws IOException {
+        super(loggerContext, is, getWhilelist());
+    }
+
+    public HardenedLoggingEventInputStream(LoggerContext loggerContext, InputStream is, List<String> additionalAuthorizedClasses)
+            throws IOException {
+        this(loggerContext, is);
         super.addToWhitelist(additionalAuthorizedClasses);
     }
 }
