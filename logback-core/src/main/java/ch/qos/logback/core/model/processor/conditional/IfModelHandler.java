@@ -33,6 +33,10 @@ public class IfModelHandler extends ModelHandlerBase {
     public static final String MISSING_JANINO_MSG = "Could not find Janino library on the class path. Skipping conditional processing.";
     public static final String MISSING_JANINO_SEE = "See also " + CoreConstants.CODES_URL + "#ifJanino";
 
+    public static final String NEW_OPERATOR_DISALLOWED_MSG = "The 'condition' attribute may not contain the 'new' operator.";
+    public static final String NEW_OPERATOR_DISALLOWED_SEE = "See also " + CoreConstants.CODES_URL + "#conditionNew";
+
+
     enum Branch {IF_BRANCH, ELSE_BRANCH; }
     
     IfModel ifModel = null;
@@ -75,6 +79,14 @@ public class IfModelHandler extends ModelHandlerBase {
                return;
             }
 
+            // do not allow 'new' operator
+            if (hasNew(conditionStr)) {
+                addError(NEW_OPERATOR_DISALLOWED_MSG);
+                addError(NEW_OPERATOR_DISALLOWED_SEE);
+                ifModel.setBranchState(BranchState.IN_ERROR);
+                return;
+            }
+
             try {
                 PropertyEvalScriptBuilder pesb = new PropertyEvalScriptBuilder(mic);
                 pesb.setContext(context);
@@ -96,8 +108,11 @@ public class IfModelHandler extends ModelHandlerBase {
             }
         }
     }
-    
-    
+
+    private boolean hasNew(String conditionStr) {
+        return conditionStr.contains("new ");
+    }
+
     @Override
     public void postHandle(ModelInterpretationContext mic, Model model) throws ModelHandlerException {
 

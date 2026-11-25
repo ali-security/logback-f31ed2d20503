@@ -115,6 +115,15 @@ public class IfThenElseTest {
     }
 
     @Test
+    public void ifWithNew() throws JoranException {
+        context.putProperty(ki1, val1);
+        simpleConfigurator.doConfigure(CONDITIONAL_DIR_PREFIX + "ifNew.xml");
+        Assertions.assertTrue(checker.containsMatch(Status.ERROR, IfModelHandler.NEW_OPERATOR_DISALLOWED_MSG));
+        Assertions.assertTrue(checker.containsMatch(Status.ERROR, IfModelHandler.NEW_OPERATOR_DISALLOWED_SEE));
+        verifyConfig(new String[] { "BEGIN", "END" });
+    }
+
+    @Test
     public void ifWithExec() throws JoranException {
         context.putProperty(ki1, val1);
         simpleConfigurator.doConfigure(CONDITIONAL_DIR_PREFIX + "ifWithExec.xml");
