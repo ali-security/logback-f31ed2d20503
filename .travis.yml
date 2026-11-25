@@ -9,11 +9,23 @@ notifications:
   email:
       - notification@qos.ch
 
+# logback-core's java21-compile execution compiles src/main/java21 with
+# <release>21</release>, which JDK 11 javac rejects; Travis has no JDK 21 package
+# for this image, so provision Temurin 21 (the JDK the release was built with).
+before_install:
+  - curl -fsSL -o /tmp/jdk21.tar.gz https://github.com/adoptium/temurin21-binaries/releases/download/jdk-21.0.4%2B7/OpenJDK21U-jdk_x64_linux_hotspot_21.0.4_7.tar.gz
+  - mkdir -p $HOME/jdk21 && tar -xzf /tmp/jdk21.tar.gz -C $HOME/jdk21 --strip-components=1
+  - export JAVA_HOME=$HOME/jdk21
+  - export PATH=$JAVA_HOME/bin:$PATH
+  - java -version
+  - mvn -v
+
 install: /bin/true
 
 script:
   - mvn clean
   - mvn install
+  - python .github/scripts/surefire_report.py
 cache:
   directories:
   - $HOME/.m2
